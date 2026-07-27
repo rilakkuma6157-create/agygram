@@ -187,7 +187,7 @@ async function main() {
       state.pruneExpired().catch((error) => console.warn('State cleanup failed', error.message)),
       usage.prune().catch((error) => console.warn('Usage cleanup failed', error.message)),
       health.write().catch((error) => console.warn('Health snapshot failed', error.message)),
-    ]).then(() => {
+    ]).then(async () => {
       const mem = process.memoryUsage();
       console.log(
         'Maintenance cycle complete · rss %d MiB · heap %d/%d MiB · external %d MiB · uptime %d s',
@@ -199,7 +199,7 @@ async function main() {
       );
       if (process.platform !== 'win32') {
         try {
-          const table = agyPrivate.snapshotPosixProcessTable({});
+          const table = await agyPrivate.snapshotPosixProcessTable({});
           const orphans = agyPrivate.findDescendantProcesses(table, process.pid);
           if (orphans.length > 0 && !runtimeTasks?.hasAnyActive()) {
             console.warn(

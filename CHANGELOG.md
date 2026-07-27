@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.2.1 — 2026-07-27
+
+- Fix hourly maintenance crash caused by unawaited `snapshotPosixProcessTable()` promise rejecting with `spawnProcess` undefined, triggering unhandledRejection that crashed the service runner.
+
 ## 3.2.0 — 2026-07-23
 
 - Add structured JSON-lines service logging (`{time, level, pid, msg}`) replacing the previous free-text format.
