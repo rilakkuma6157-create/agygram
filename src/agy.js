@@ -1353,6 +1353,7 @@ export const _private = {
   AUTH_PATTERN,
   isAuthRequired,
   compareSemverTriplets,
+  cleanResponse,
   extractSemverTriplet,
   findDescendantProcesses,
   findIdInObject,
