@@ -833,3 +833,48 @@ test('authenticationStatus reports authentication-required output without throwi
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test('isAuthRequired correctly distinguishes real auth requirements from benign startup logs', () => {
+  assert.equal(
+    _private.isAuthRequired('OAuth: authenticated successfully as test@gmail.com\nsomething went wrong'),
+    false,
+  );
+  assert.equal(
+    _private.isAuthRequired('Auth succeeded, refreshing features and managers\nProcess terminated'),
+    false,
+  );
+  assert.equal(
+    _private.isAuthRequired('Authentication required. Please visit the URL to log in:'),
+    true,
+  );
+  assert.equal(
+    _private.isAuthRequired('error getting token source: You are not logged into Antigravity.'),
+    true,
+  );
+  assert.equal(
+    _private.isAuthRequired('Error: command failed with exit code 1'),
+    false,
+  );
+});
+
+test('runProcess does not classify exit 1 as AGY_AUTH_REQUIRED when OAuth startup log is present', { skip: process.platform === 'win32' }, async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'agy-fake-auth-'));
+  const shim = path.join(root, 'fake-agy');
+  try {
+    await writeFile(
+      shim,
+      '#!/bin/sh\necho "OAuth: authenticated successfully as user@example.com" >&2\necho "fatal execution error" >&2\nexit 1\n',
+    );
+    await chmod(shim, 0o755);
+    await assert.rejects(
+      runProcess(shim, ['--print', 'hi'], { cwd: root, timeoutMs: 1_000 }),
+      (err) => {
+        assert.equal(err instanceof AgyError, true);
+        assert.equal(err.code, 'AGY_EXIT_ERROR');
+        return true;
+      },
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
