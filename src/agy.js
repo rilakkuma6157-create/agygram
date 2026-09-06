@@ -13,7 +13,15 @@ import {
 } from './process-platform.js';
 
 const AUTH_PATTERN =
-  /not signed in|sign[ -]?in required|authentication required|authenticate|select login method|oauth|authorization url/i;
+  /not (?:signed|logged) in|sign[ -]?in required|login required|authentication required|please (?:authenticate|log ?in|sign ?in)|select login method|authorization url/i;
+
+export function isAuthRequired(detail) {
+  if (typeof detail !== 'string' || !detail) return false;
+  if (/authenticated successfully|auth succeeded/i.test(detail)) {
+    return false;
+  }
+  return AUTH_PATTERN.test(detail);
+}
 
 const DEFAULT_RUN_LOG_READ_BYTES = 256 * 1024;
 const DEFAULT_RUN_LOG_RETENTION_MS = 7 * 24 * 60 * 60 * 1_000;
@@ -740,7 +748,7 @@ export function runProcess(
           const detail = (result.stderr || result.stdout).trim().slice(-2_000);
           reject(new AgyError(`agy exited with non-zero status (${exitCode ?? 'unknown'})`, {
             ...result,
-            code: AUTH_PATTERN.test(detail) ? 'AGY_AUTH_REQUIRED' : 'AGY_EXIT_ERROR',
+            code: isAuthRequired(detail) ? 'AGY_AUTH_REQUIRED' : 'AGY_EXIT_ERROR',
           }));
         } else {
           resolve(result);
@@ -1343,8 +1351,8 @@ export class AgyClient {
 
 export const _private = {
   AUTH_PATTERN,
+  isAuthRequired,
   compareSemverTriplets,
-  cleanResponse,
   extractSemverTriplet,
   findDescendantProcesses,
   findIdInObject,
